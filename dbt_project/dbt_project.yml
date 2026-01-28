@@ -1,0 +1,29 @@
+name: 'brewery_pipeline'
+version: '1.0.0'
+config-version: 2
+
+profile: 'brewery_pipeline'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  brewery_pipeline:
+    # Staging models - intermediate transformations
+    staging:
+      +materialized: view
+      +schema: staging
+
+    # Marts models - business-level aggregations
+    marts:
+      +materialized: table
+      +schema: gold

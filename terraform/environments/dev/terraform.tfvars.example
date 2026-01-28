@@ -1,0 +1,25 @@
+# =============================================================================
+# Development Environment - Example Variables
+# =============================================================================
+# Copy this file to terraform.tfvars and fill in your values
+# IMPORTANT: Never commit terraform.tfvars to version control!
+# Add terraform.tfvars to .gitignore
+# =============================================================================
+
+# Project Configuration
+project_name = "bees-breweries"
+environment  = "dev"
+aws_region   = "us-east-1"
+
+# Network Configuration
+vpc_cidr = "10.0.0.0/16"
+
+# Database Configuration
+db_name     = "airflow"
+db_username = "airflow"
+# IMPORTANT: Set a strong password and never commit it
+# Production should use AWS Secrets Manager instead
+db_password = "CHANGE_ME_TO_STRONG_PASSWORD"
+
+# Example strong password format:
+# db_password = "Dev2024!SecurePass#Airflow"

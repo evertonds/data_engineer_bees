@@ -1,0 +1,253 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  lint:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 black isort
+
+      - name: Check code formatting with Black
+        run: |
+          black --check --diff src/ tests/ dags/
+
+      - name: Check import sorting with isort
+        run: |
+          isort --check-only --diff src/ tests/ dags/
+
+      - name: Lint with flake8
+        run: |
+          # Stop the build if there are Python syntax errors or undefined names
+          flake8 src/ tests/ dags/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Exit-zero treats all errors as warnings
+          flake8 src/ tests/ dags/ --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: lint
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: airflow
+          POSTGRES_PASSWORD: airflow123
+          POSTGRES_DB: breweries
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install Java (required for PySpark)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-mock
+
+      - name: Run tests with coverage
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: breweries
+          DB_USER: airflow
+          DB_PASSWORD: airflow123
+        run: |
+          pytest tests/ -v --cov=src --cov-report=xml --cov-report=term-missing
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+  validate-data-quality:
+    name: Validate Data Quality Config
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install Great Expectations
+        run: |
+          python -m pip install --upgrade pip
+          pip install great-expectations
+
+      - name: Validate Great Expectations configuration
+        run: |
+          great_expectations --v3-api project check-config --directory great_expectations/
+
+      - name: List expectation suites
+        run: |
+          ls -la great_expectations/expectations/
+
+  validate-dbt:
+    name: Validate dbt Project
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dbt
+        run: |
+          python -m pip install --upgrade pip
+          pip install dbt-postgres
+
+      - name: Validate dbt project
+        run: |
+          cd dbt_project
+          dbt debug --profiles-dir . || true
+          dbt parse --profiles-dir .
+
+  validate-airflow:
+    name: Validate Airflow DAGs
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install Airflow and dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install apache-airflow==2.8.0 --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.8.0/constraints-3.11.txt"
+          pip install -r requirements.txt
+
+      - name: Initialize Airflow DB (standalone mode)
+        run: |
+          export AIRFLOW_HOME=$(pwd)/airflow_test
+          airflow db init
+
+      - name: Validate DAG syntax
+        run: |
+          export AIRFLOW_HOME=$(pwd)/airflow_test
+          export AIRFLOW__CORE__DAGS_FOLDER=$(pwd)/dags
+          python -c "
+          import sys
+          from airflow.models import DagBag
+
+          dagbag = DagBag(dag_folder='dags/', include_examples=False)
+
+          if dagbag.import_errors:
+              print('DAG import errors:')
+              for filename, error in dagbag.import_errors.items():
+                  print(f'{filename}: {error}')
+              sys.exit(1)
+
+          print(f'Successfully loaded {len(dagbag.dags)} DAG(s)')
+          for dag_id, dag in dagbag.dags.items():
+              print(f'  - {dag_id}: {len(dag.tasks)} tasks')
+          "
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install safety
+        run: |
+          python -m pip install --upgrade pip
+          pip install safety
+
+      - name: Check for security vulnerabilities
+        run: |
+          pip install -r requirements.txt
+          safety check --json || true
+
+      - name: Run Bandit security linter
+        run: |
+          pip install bandit
+          bandit -r src/ -f json -o bandit-report.json || true
+          bandit -r src/ -f screen
+
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [lint, test, validate-data-quality, validate-dbt, validate-airflow, security-scan]
+    if: always()
+
+    steps:
+      - name: Check CI status
+        run: |
+          echo "CI Pipeline completed!"
+          echo "Lint: ${{ needs.lint.result }}"
+          echo "Test: ${{ needs.test.result }}"
+          echo "Data Quality: ${{ needs.validate-data-quality.result }}"
+          echo "dbt: ${{ needs.validate-dbt.result }}"
+          echo "Airflow: ${{ needs.validate-airflow.result }}"
+          echo "Security: ${{ needs.security-scan.result }}"

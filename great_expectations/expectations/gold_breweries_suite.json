@@ -1,0 +1,80 @@
+{
+  "data_asset_type": "Dataset",
+  "expectation_suite_name": "gold_breweries_suite",
+  "meta": {
+    "great_expectations_version": "0.18.8",
+    "notes": {
+      "format": "markdown",
+      "content": [
+        "# Gold Layer Expectations",
+        "",
+        "Simplified business metric validations for Gold layer.",
+        "Validates aggregation correctness and basic business rules."
+      ]
+    }
+  },
+  "expectations": [
+    {
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "kwargs": {
+        "min_value": 1,
+        "max_value": null
+      },
+      "meta": {
+        "severity": "critical",
+        "notes": "Gold should have aggregated data"
+      }
+    },
+    {
+      "expectation_type": "expect_column_to_exist",
+      "kwargs": {
+        "column": "country"
+      },
+      "meta": {
+        "severity": "critical"
+      }
+    },
+    {
+      "expectation_type": "expect_column_to_exist",
+      "kwargs": {
+        "column": "state"
+      },
+      "meta": {
+        "severity": "critical"
+      }
+    },
+    {
+      "expectation_type": "expect_column_to_exist",
+      "kwargs": {
+        "column": "total_breweries"
+      },
+      "meta": {
+        "severity": "critical"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "total_breweries",
+        "mostly": 1.0
+      },
+      "meta": {
+        "severity": "critical",
+        "notes": "Total breweries is a required metric"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "total_breweries",
+        "min_value": 1,
+        "max_value": null,
+        "mostly": 1.0
+      },
+      "meta": {
+        "severity": "warning",
+        "notes": "Each group should have at least 1 brewery"
+      }
+    }
+  ]
+}

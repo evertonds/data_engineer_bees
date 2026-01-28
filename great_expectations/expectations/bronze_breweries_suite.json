@@ -1,0 +1,57 @@
+{
+  "data_asset_type": "Dataset",
+  "expectation_suite_name": "bronze_breweries_suite",
+  "meta": {
+    "great_expectations_version": "0.18.8",
+    "notes": {
+      "format": "markdown",
+      "content": [
+        "# Bronze Layer Expectations",
+        "",
+        "Simplified observational validations for Bronze layer.",
+        "Monitor data quality without rejecting records."
+      ]
+    }
+  },
+  "expectations": [
+    {
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "kwargs": {
+        "min_value": 1,
+        "max_value": null
+      },
+      "meta": {
+        "severity": "warning",
+        "notes": "Bronze should have data from API"
+      }
+    },
+    {
+      "expectation_type": "expect_column_to_exist",
+      "kwargs": {
+        "column": "id"
+      },
+      "meta": {
+        "severity": "info"
+      }
+    },
+    {
+      "expectation_type": "expect_column_to_exist",
+      "kwargs": {
+        "column": "name"
+      },
+      "meta": {
+        "severity": "info"
+      }
+    },
+    {
+      "expectation_type": "expect_column_to_exist",
+      "kwargs": {
+        "column": "ingestion_timestamp"
+      },
+      "meta": {
+        "severity": "warning",
+        "notes": "System fields should be present"
+      }
+    }
+  ]
+}

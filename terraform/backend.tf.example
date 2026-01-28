@@ -1,0 +1,186 @@
+# =============================================================================
+# Terraform Backend Configuration - S3 Remote State
+# =============================================================================
+# Purpose: Store Terraform state remotely in S3 with DynamoDB locking
+#
+# Benefits of Remote State:
+# 1. Team collaboration - shared state across team members
+# 2. State locking - prevents concurrent modifications
+# 3. State versioning - S3 versioning enables state recovery
+# 4. Security - state encryption at rest
+# 5. Audit trail - who made what changes and when
+#
+# Setup Instructions:
+# 1. Create S3 bucket for state storage
+# 2. Create DynamoDB table for state locking
+# 3. Copy this file to each environment directory
+# 4. Uncomment the backend configuration in environment main.tf
+# 5. Run `terraform init` to migrate state to S3
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Prerequisites - Run These Commands First
+# -----------------------------------------------------------------------------
+# Create S3 bucket for Terraform state:
+#
+# aws s3api create-bucket \
+#   --bucket bees-breweries-terraform-state \
+#   --region us-east-1
+#
+# Enable versioning (important for state recovery):
+#
+# aws s3api put-bucket-versioning \
+#   --bucket bees-breweries-terraform-state \
+#   --versioning-configuration Status=Enabled
+#
+# Enable encryption:
+#
+# aws s3api put-bucket-encryption \
+#   --bucket bees-breweries-terraform-state \
+#   --server-side-encryption-configuration '{
+#     "Rules": [{
+#       "ApplyServerSideEncryptionByDefault": {
+#         "SSEAlgorithm": "AES256"
+#       }
+#     }]
+#   }'
+#
+# Block public access:
+#
+# aws s3api put-public-access-block \
+#   --bucket bees-breweries-terraform-state \
+#   --public-access-block-configuration \
+#     BlockPublicAcls=true,\
+#     IgnorePublicAcls=true,\
+#     BlockPublicPolicy=true,\
+#     RestrictPublicBuckets=true
+#
+# Create DynamoDB table for state locking:
+#
+# aws dynamodb create-table \
+#   --table-name terraform-state-lock \
+#   --attribute-definitions AttributeName=LockID,AttributeType=S \
+#   --key-schema AttributeName=LockID,KeyType=HASH \
+#   --billing-mode PAY_PER_REQUEST \
+#   --region us-east-1
+#
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# Backend Configuration for Development Environment
+# -----------------------------------------------------------------------------
+# Add this to terraform/environments/dev/main.tf:
+#
+# terraform {
+#   backend "s3" {
+#     bucket         = "bees-breweries-terraform-state"
+#     key            = "env/dev/terraform.tfstate"
+#     region         = "us-east-1"
+#     encrypt        = true
+#     dynamodb_table = "terraform-state-lock"
+#
+#     # Optional: Enable state versioning
+#     versioning     = true
+#   }
+# }
+
+# -----------------------------------------------------------------------------
+# Backend Configuration for Production Environment
+# -----------------------------------------------------------------------------
+# Add this to terraform/environments/prod/main.tf:
+#
+# terraform {
+#   backend "s3" {
+#     bucket         = "bees-breweries-terraform-state"
+#     key            = "env/prod/terraform.tfstate"
+#     region         = "us-east-1"
+#     encrypt        = true
+#     dynamodb_table = "terraform-state-lock"
+#
+#     # Optional: Enable state versioning
+#     versioning     = true
+#   }
+# }
+
+# -----------------------------------------------------------------------------
+# Migrating Existing State to S3
+# -----------------------------------------------------------------------------
+# If you already have local state files, migrate them to S3:
+#
+# 1. Uncomment the backend configuration in your environment's main.tf
+# 2. Run: terraform init -migrate-state
+# 3. Confirm the migration when prompted
+# 4. Verify state in S3: aws s3 ls s3://bees-breweries-terraform-state/env/
+# 5. Delete local terraform.tfstate files (they're now in S3)
+
+# -----------------------------------------------------------------------------
+# State Locking
+# -----------------------------------------------------------------------------
+# DynamoDB table prevents concurrent Terraform operations:
+# - When running terraform apply, a lock is acquired
+# - Other users see: "Error: Error locking state: ConditionalCheckFailedException"
+# - Lock is released when operation completes
+# - If process crashes, lock remains - manually delete from DynamoDB if needed
+
+# -----------------------------------------------------------------------------
+# State Recovery
+# -----------------------------------------------------------------------------
+# If state gets corrupted, recover from S3 version history:
+#
+# 1. List versions:
+#    aws s3api list-object-versions \
+#      --bucket bees-breweries-terraform-state \
+#      --prefix env/dev/terraform.tfstate
+#
+# 2. Download specific version:
+#    aws s3api get-object \
+#      --bucket bees-breweries-terraform-state \
+#      --key env/dev/terraform.tfstate \
+#      --version-id VERSION_ID \
+#      terraform.tfstate.backup
+#
+# 3. Copy backup to current state:
+#    cp terraform.tfstate.backup terraform.tfstate
+#
+# 4. Push to remote state:
+#    terraform init -reconfigure
+
+# -----------------------------------------------------------------------------
+# Best Practices
+# -----------------------------------------------------------------------------
+# 1. Never commit terraform.tfstate to Git
+# 2. Always use state locking (DynamoDB) in team environments
+# 3. Enable S3 versioning for state recovery
+# 4. Use separate state files per environment (different keys)
+# 5. Restrict S3 bucket access to authorized users only
+# 6. Enable S3 server access logging for audit trail
+# 7. Consider using workspaces for environment isolation
+# 8. Regularly backup state files to another location
+
+# -----------------------------------------------------------------------------
+# Security Considerations
+# -----------------------------------------------------------------------------
+# State files contain sensitive information:
+# - Database passwords (if hardcoded)
+# - Resource IDs and ARNs
+# - Private IP addresses
+# - Configuration details
+#
+# Protect state files by:
+# - Enabling S3 encryption at rest
+# - Using IAM policies to restrict access
+# - Using AWS Secrets Manager for sensitive values
+# - Never exposing state files publicly
+# - Rotating sensitive credentials regularly
+
+# -----------------------------------------------------------------------------
+# Cost Considerations
+# -----------------------------------------------------------------------------
+# Remote state infrastructure costs (minimal):
+# - S3 storage: ~$0.023 per GB per month
+# - DynamoDB: $0.25 per million write requests (pay-per-request)
+# - Typical cost: <$1/month for small projects
+#
+# For this project:
+# - State file size: ~50-100 KB per environment
+# - Monthly cost: <$0.50 for both dev and prod

@@ -1,0 +1,34 @@
+# Bronze Layer Validation Checkpoint
+# Validates Bronze data after API extraction
+# Philosophy: Monitor and observe, do not reject data
+
+name: bronze_checkpoint
+config_version: 1.0
+class_name: SimpleCheckpoint
+module_name: great_expectations.checkpoint
+
+validations:
+  - batch_request:
+      datasource_name: bronze_datasource
+      data_connector_name: bronze_table_connector
+      data_asset_name: bronze_breweries
+    expectation_suite_name: bronze_breweries_suite
+
+action_list:
+  - name: store_validation_result
+    action:
+      class_name: StoreValidationResultAction
+  - name: update_data_docs
+    action:
+      class_name: UpdateDataDocsAction
+
+# Evaluation parameters
+evaluation_parameters: {}
+
+# Runtime configuration
+runtime_configuration:
+  result_format:
+    result_format: COMPLETE
+    unexpected_index_column_names:
+      - id
+    return_unexpected_index_query: true
