@@ -1,0 +1,78 @@
+{
+  "data_asset_type": "Dataset",
+  "expectation_suite_name": "silver_breweries_suite",
+  "meta": {
+    "great_expectations_version": "0.18.8",
+    "notes": {
+      "format": "markdown",
+      "content": [
+        "# Silver Layer Expectations",
+        "",
+        "Simplified validation suite for Silver layer.",
+        "Validates essential data quality requirements."
+      ]
+    }
+  },
+  "expectations": [
+    {
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "kwargs": {
+        "min_value": 1,
+        "max_value": null
+      },
+      "meta": {
+        "severity": "critical",
+        "notes": "Silver should have at least some valid records"
+      }
+    },
+    {
+      "expectation_type": "expect_column_to_exist",
+      "kwargs": {
+        "column": "id"
+      },
+      "meta": {
+        "severity": "critical"
+      }
+    },
+    {
+      "expectation_type": "expect_column_to_exist",
+      "kwargs": {
+        "column": "name"
+      },
+      "meta": {
+        "severity": "critical"
+      }
+    },
+    {
+      "expectation_type": "expect_column_to_exist",
+      "kwargs": {
+        "column": "brewery_type"
+      },
+      "meta": {
+        "severity": "critical"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "id",
+        "mostly": 0.99
+      },
+      "meta": {
+        "severity": "critical",
+        "notes": "ID is required for all records"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "name",
+        "mostly": 0.95
+      },
+      "meta": {
+        "severity": "warning",
+        "notes": "Name should be present for most records"
+      }
+    }
+  ]
+}

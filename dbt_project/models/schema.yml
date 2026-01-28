@@ -1,0 +1,141 @@
+version: 2
+
+sources:
+  - name: silver
+    description: Silver layer containing cleaned and transformed brewery data
+    database: breweries
+    schema: breweries_silver
+    tables:
+      - name: tb_breweries
+        description: Cleaned brewery data with quality scores and feature flags
+        columns:
+          - name: id
+            description: Unique brewery identifier (UUID)
+            tests:
+              - not_null
+              - unique
+          - name: brewery_type
+            description: Type of brewery (micro, brewpub, large, etc.)
+            tests:
+              - not_null
+          - name: country
+            description: Country where the brewery is located
+            tests:
+              - not_null
+          - name: state
+            description: State/province where the brewery is located
+            tests:
+              - not_null
+          - name: city
+            description: City where the brewery is located
+            tests:
+              - not_null
+
+models:
+  - name: stg_breweries
+    description: Staging layer that prepares silver brewery data for aggregation
+    columns:
+      - name: id
+        description: Unique brewery identifier
+        tests:
+          - not_null
+          - unique
+      - name: brewery_type
+        description: Type of brewery
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['micro', 'nano', 'regional', 'brewpub', 'large', 'planning', 'bar', 'contract', 'proprietor', 'closed', 'taproom', 'beergarden', 'cidery', 'location']
+      - name: country
+        description: Country location
+        tests:
+          - not_null
+      - name: state
+        description: State/province location
+        tests:
+          - not_null
+      - name: city
+        description: City location
+        tests:
+          - not_null
+      - name: data_quality_score
+        description: Data quality score (0-1)
+        tests:
+          - not_null
+
+  - name: fat_breweries_by_type_location
+    description: |
+      Gold layer aggregation showing the quantity of breweries per type and location.
+
+      This is the main analytical table providing brewery counts grouped by:
+      - brewery_type: The type/category of brewery
+      - country: Country location
+      - state: State/province location
+      - city: City location
+
+      Additional metrics include:
+      - breweries_with_coordinates: Count of breweries with geolocation data
+      - breweries_with_website: Count of breweries with website information
+      - avg_data_quality_score: Average data completeness score
+
+    columns:
+      - name: country
+        description: Country where breweries are located
+        tests:
+          - not_null
+
+      - name: state
+        description: State/province where breweries are located
+        tests:
+          - not_null
+
+      - name: city
+        description: City where breweries are located
+        tests:
+          - not_null
+
+      - name: brewery_type
+        description: Type of brewery (micro, brewpub, large, etc.)
+        tests:
+          - not_null
+
+      - name: total_breweries
+        description: Total number of breweries in this location and type
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 1"
+
+      - name: breweries_with_coordinates
+        description: Number of breweries with valid latitude/longitude
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+
+      - name: breweries_with_website
+        description: Number of breweries with website URL
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+
+      - name: avg_data_quality_score
+        description: Average data quality score (0.00 to 1.00)
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "between 0 and 1"
+
+      - name: last_updated
+        description: Timestamp when this record was last updated
+        tests:
+          - not_null
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - country
+            - state
+            - city
+            - brewery_type

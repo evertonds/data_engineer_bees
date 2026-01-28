@@ -1,0 +1,85 @@
+# Terraform - Exclude state and actual values
+**/.terraform/
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+terraform/**/*.tfvars
+!terraform/**/*.tfvars.example
+
+# Environment variables - Exclude actual values
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# AWS credentials
+*.pem
+.aws/
+credentials
+
+# Data files (can be large)
+data/bronze/**/*.json
+data/silver/**/*.parquet
+data/gold/**/*.parquet
+!data/**/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.claude/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+airflow-logs/
+
+# OS
+.DS_Store
+Thumbs.db
+.AppleDouble
+.LSOverride
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Great Expectations
+great_expectations/uncommitted/
+great_expectations/.ge_store_backend_id
+
+# dbt
+dbt_project/target/
+dbt_project/dbt_packages/
+dbt_project/logs/
+
+# Airflow
+airflow.db
+airflow.cfg
+unittests.cfg
+airflow-webserver.pid
+standalone_admin_password.txt
+
+# Docker volumes
+postgres-data/

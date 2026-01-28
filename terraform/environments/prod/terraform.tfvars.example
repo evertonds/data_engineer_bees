@@ -1,0 +1,43 @@
+# =============================================================================
+# Production Environment - Example Variables
+# =============================================================================
+# Copy this file to terraform.tfvars and fill in your values
+# CRITICAL: Never commit terraform.tfvars to version control!
+# Add terraform.tfvars to .gitignore
+#
+# PRODUCTION SECURITY NOTES:
+# 1. Use AWS Secrets Manager for sensitive values (passwords, API keys)
+# 2. Use strong passwords (16+ characters, mixed case, numbers, symbols)
+# 3. Rotate credentials regularly
+# 4. Enable MFA for AWS console access
+# 5. Use IAM roles instead of access keys where possible
+# =============================================================================
+
+# Project Configuration
+project_name = "bees-breweries"
+environment  = "prod"
+aws_region   = "us-east-1"
+
+# Network Configuration
+# Note: Different CIDR from dev (10.1.x vs 10.0.x) to allow VPC peering
+vpc_cidr = "10.1.0.0/16"
+
+# Database Configuration
+db_name     = "airflow"
+db_username = "airflow"
+
+# CRITICAL: Set a strong password and never commit it
+# Production MUST use AWS Secrets Manager instead of hardcoded password
+# This is for demonstration only - DO NOT use in real production
+db_password = "CHANGE_ME_TO_VERY_STRONG_PASSWORD_MIN_16_CHARS"
+
+# Example strong password format (DO NOT use this exact password):
+# db_password = "Prod2024!SecurePass#Airflow$Brewery%789"
+#
+# Better approach - use AWS Secrets Manager:
+# 1. Create secret in AWS Secrets Manager
+# 2. Reference secret in Terraform:
+#    data "aws_secretsmanager_secret_version" "db_password" {
+#      secret_id = "prod/airflow/db-password"
+#    }
+# 3. Use: jsondecode(data.aws_secretsmanager_secret_version.db_password.secret_string)["password"]
