@@ -559,7 +559,6 @@ Configured alerts for:
 ## 📞 Contact
 
 **Everton Santos**
-- GitHub: [@YOUR_USERNAME](https://github.com/YOUR_USERNAME)
 - LinkedIn: [Everton Santos](https://www.linkedin.com/in/santos-evertonds/)
 - Email: evertonds@live.com
 
