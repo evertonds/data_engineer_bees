@@ -108,6 +108,9 @@ End-to-end data pipeline implementing **Medallion Architecture** (Bronze → Sil
 - **Make** (optional but recommended for automation)
 - 8 GB RAM minimum (16 GB recommended)
 
+> **💡 Platform Compatibility:**
+> This project runs natively on **Linux** and **macOS**. Windows users will need additional setup (WSL2 recommended) due to Makefile and bash script dependencies. Alternatively, use Docker Compose commands directly instead of Make.
+
 ### Available Make Commands
 
 This project uses a **Makefile** to simplify common operations:
