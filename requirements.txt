@@ -38,7 +38,7 @@ moto==4.2.9
 black==23.12.1
 flake8==6.1.0
 isort==5.13.2
-mypy==1.7.1
+mypy==1.19.1
 
 # Utilities
 python-dotenv==1.0.0
