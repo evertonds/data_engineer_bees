@@ -4,7 +4,7 @@ apache-airflow-providers-postgres==5.7.1
 apache-airflow-providers-amazon==8.11.0
 
 # PySpark
-pyspark==3.5.0
+pyspark==4.1.1
 
 # Database
 psycopg2-binary==2.9.9
